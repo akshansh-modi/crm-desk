@@ -6,6 +6,7 @@ node_modules/
 env/
 __pycache__/
 *.pyc
+*.egg-info/
 
 # site data and configs (hold passwords, injected at deploy time)
 sites/

@@ -1,0 +1,54 @@
+# Cloud DB/Redis:  docker compose up
+# Local DB/Redis:  docker compose --profile local up
+# (which one is decided by your .env, copy from .env.cloud.example or .env.local.example)
+
+services:
+  frappe:
+    image: frappe/bench:latest
+    command: bash /workspace/docker/entrypoint.sh
+    env_file: .env
+    environment:
+      SHELL: /bin/bash
+    working_dir: /home/frappe/frappe-bench
+    volumes:
+      - .:/workspace
+      # The code: lives on your Mac, edits show up instantly in the container
+      - ./apps:/home/frappe/frappe-bench/apps
+      # Container-only stuff, kept in Docker volumes so it survives restarts
+      # and doesn't clutter (or slow down) the Mac folder
+      - bench-env:/home/frappe/frappe-bench/env
+      - bench-sites:/home/frappe/frappe-bench/sites
+      - nm-frappe:/home/frappe/frappe-bench/apps/frappe/node_modules
+      - nm-helpdesk:/home/frappe/frappe-bench/apps/helpdesk/node_modules
+      - nm-helpdesk-desk:/home/frappe/frappe-bench/apps/helpdesk/desk/node_modules
+      - nm-crm:/home/frappe/frappe-bench/apps/crm/node_modules
+      - nm-crm-frontend:/home/frappe/frappe-bench/apps/crm/frontend/node_modules
+    ports:
+      - 8000:8000
+      - 9000:9000
+
+  mariadb:
+    profiles: [local]
+    image: mariadb:11.8
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-123}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+
+  redis:
+    profiles: [local]
+    image: redis:8-alpine
+
+volumes:
+  bench-env:
+  bench-sites:
+  nm-frappe:
+  nm-helpdesk:
+  nm-helpdesk-desk:
+  nm-crm:
+  nm-crm-frontend:
+  mariadb-data:
