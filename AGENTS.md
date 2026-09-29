@@ -44,7 +44,73 @@ The upstream code was cloned and then its `.git` was deleted, so everything live
 
   Otherwise the patch gets silently lost the next time someone re-syncs from upstream.
 
+  Code in **our own custom apps** is not upstream code: don't add it to `PATCHES.md`.
+
 The empty `apps/crm/frappe-ui` and `apps/helpdesk/frappe-ui` folders are left over from git submodules. They are **not needed**: the build uses the `frappe-ui` npm package.
+
+## Re-syncing an app from upstream
+
+"Re-syncing" means replacing an app's code in `apps/` with a newer upstream version. For example, pulling in the latest Helpdesk.
+
+**Only do this when a maintainer explicitly asks for it.** Don't start a re-sync on your own because:
+
+- you read this section,
+- you noticed upstream is newer, or
+- a re-sync seems like it would fix something.
+
+If you think one is needed, say so and wait.
+
+**Never re-sync directly on `main`.** Always work on a separate branch and let a maintainer review it. A re-sync touches thousands of files and can silently undo our patches.
+
+Steps, for one app at a time:
+
+1. **Branch off an up-to-date `main`:**
+
+   ```bash
+   git switch main && git pull
+   git switch -c resync/<app>-<YYYY-MM-DD>
+   ```
+
+2. **Get the new upstream code.** Use the branch listed for that app in `UPSTREAM_VERSIONS.txt`. Clone it into a temporary folder **outside** this repo:
+
+   ```bash
+   git clone --depth 1 --branch <branch> https://github.com/frappe/<app> /tmp/<app>-upstream
+   ```
+
+   Then note the new commit:
+
+   ```bash
+   git -C /tmp/<app>-upstream rev-parse HEAD
+   ```
+
+3. **Replace the app's code.** Copy the new code over the old, deleting files upstream removed. Leave out upstream's `.git` and any `node_modules`:
+
+   ```bash
+   rsync -a --delete --exclude .git --exclude node_modules /tmp/<app>-upstream/ apps/<app>/
+   ```
+
+   Commit this on its own, as "Re-sync <app> to <commit>". Then the next step's diff shows exactly what our patches change.
+
+4. **Re-apply our patches.** Go through every `PATCHES.md` row for this app. For each one:
+   - **Upstream fixed it:** delete the row and don't re-apply it.
+   - **Still needed:** re-apply it and keep the `crm-desk patch` comment. To see the old version, run `git show main:<file>`. If the surrounding code changed, adapt the patch instead of forcing the old version in.
+
+   Afterwards, run `grep -rn "crm-desk patch" apps/<app>`. The results should match the `PATCHES.md` rows for this app, one for one.
+
+5. **Update `UPSTREAM_VERSIONS.txt`** with the new commit.
+
+6. **Test in LOCAL mode only** (`.env.local.example`, `docker compose --profile local up`). Never test against the shared cloud DB.
+   - Start the stack and run `bench --site <site> migrate`.
+   - Rebuild the frontend with `bench build --app <app>`.
+   - Click through the pages the patches touch.
+   - Check `frappe`'s supported range in `apps/<app>/pyproject.toml`. If it excludes our Frappe version, stop and report it.
+
+7. **Push the branch and open a PR.** Don't merge it yourself. In the PR:
+   - list the old and new upstream commits,
+   - list which patches were re-applied, adapted or dropped,
+   - say what you tested.
+
+   After merge, a maintainer decides when to run `migrate` on the shared cloud site.
 
 ## Running it
 
