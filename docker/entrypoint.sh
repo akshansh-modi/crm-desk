@@ -8,8 +8,9 @@ cd /home/frappe/frappe-bench
 : "${SITE_NAME:?set SITE_NAME in .env}"
 : "${REDIS_URL:?set REDIS_URL in .env}"
 
-# Docker creates volume mount points owned by root; bench refuses to run as root
-sudo chown frappe:frappe env sites apps/*/node_modules apps/*/*/node_modules 2>/dev/null || true
+# Docker creates volume mount points (and the bench folder that holds them) owned by root;
+# bench refuses to run as root. Not recursive: apps/ is our code from the host, leave it be.
+sudo chown frappe:frappe . env sites apps/*/node_modules apps/*/*/node_modules 2>/dev/null || true
 mkdir -p config/pids logs sites
 
 # --- Python: one virtualenv, every app installed in editable mode ---
@@ -41,7 +42,7 @@ env/bin/python /workspace/docker/write_config.py
 
 # --- Site ---
 # cloud: the site already lives in the shared DB, write_config.py pointed us at it.
-# Never new-site / install-app / migrate for cloud here: that would hit the DB both devs share.
+# local: create it on the first start.
 if [ "$MODE" = "local" ] && [ ! -f "sites/$SITE_NAME/site_config.json" ]; then
     until env/bin/python -c "import socket; socket.create_connection(('mariadb', 3306), 2)" 2>/dev/null; do
         echo "Waiting for local MariaDB..."; sleep 2
@@ -50,9 +51,14 @@ if [ "$MODE" = "local" ] && [ ! -f "sites/$SITE_NAME/site_config.json" ]; then
         --db-host mariadb \
         --db-root-password "${DB_ROOT_PASSWORD:-123}" \
         --admin-password "${ADMIN_PASSWORD:-admin}" \
-        --mariadb-user-host-login-scope='%' \
-        --install-app telephony --install-app helpdesk --install-app crm
+        --mariadb-user-host-login-scope='%'
 fi
+
+# Install our apps on the site. Already-installed apps are skipped ("already installed"),
+# so after the first run this is a no-op. Add custom apps to this line when they're ready.
+# Deliberately NOT `bench migrate`: on the shared cloud DB that would push one dev's
+# unfinished doctype changes onto everyone. Migrate stays a manual, agreed step.
+bench --site "$SITE_NAME" install-app telephony helpdesk crm
 
 # --- Frontend: install + build only on first start (rebuild by hand after frontend changes) ---
 if [ ! -f sites/.built ]; then

@@ -45,6 +45,11 @@ if env.get("BENCH_ID"):
 	merge(sites / "common_site_config.json", {"bench_id": env["BENCH_ID"]})
 
 if env["MODE"] == "cloud":
+	# The folders `bench new-site` would have made (frappe/installer.py make_site_dirs);
+	# cloud mode never runs new-site, and Frappe crashes without logs/ etc.
+	for folder in ("public/files", "private/backups", "private/files", "locks", "logs"):
+		(sites / env["SITE_NAME"] / folder).mkdir(parents=True, exist_ok=True)
+
 	merge(
 		sites / env["SITE_NAME"] / "site_config.json",
 		{

@@ -38,7 +38,9 @@ Fill in these values in `.env`:
 
 The host, port and DB name are already filled in.
 
-**Don't do these on the cloud site without telling the team:** `migrate`, `install-app`, `new-site` or `reinstall`. Everyone shares this database, so these change it for all of you.
+The first start installs telephony, helpdesk and crm on the site if they aren't already installed. Every later start skips that step.
+
+**Don't do these on the cloud site without telling the team:** `migrate`, `install-app` of a new app, `new-site` or `reinstall`. Everyone shares this database, so these change it for all of you.
 
 Never commit `.env`. It's gitignored, and only the `.example` files belong in git.
 

@@ -148,11 +148,11 @@ In cloud mode every dev points at the **same** MariaDB database (SkySQL) and the
   - `bench reinstall`
   - `bench drop-site`
   - `bench migrate`
-  - `bench install-app` / `bench uninstall-app`
+  - `bench install-app` for a new app, or `bench uninstall-app`
   - DDL
   - bulk deletes
 
-  The entrypoint deliberately never runs them in cloud mode.
+  The entrypoint never runs these in cloud mode, with one exception. On every start it runs `install-app` for the apps listed in `docker/entrypoint.sh`, and that skips any app that's already installed. Adding an app to that line therefore installs it on the shared site at the next start, so treat that edit as a team decision.
 - **`ENCRYPTION_KEY`** must be the same for every dev on the shared site. Otherwise stored passwords, such as email-account passwords, can't be decrypted.
 - **`BENCH_ID`** controls background-job queue names (`<bench_id>:<queue>`). The rule is: same code → same id, different code → different id.
   - Two devs on the shared Redis each set their own id, so one dev's worker doesn't run the other's jobs.
