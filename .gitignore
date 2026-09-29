@@ -1,0 +1,15 @@
+# built / installed stuff (regenerated during build)
+node_modules/
+**/public/dist/
+**/public/desk/
+**/public/frontend/
+env/
+__pycache__/
+*.pyc
+
+# site data and configs (hold passwords, injected at deploy time)
+sites/
+*.env
+
+# OS noise
+.DS_Store
