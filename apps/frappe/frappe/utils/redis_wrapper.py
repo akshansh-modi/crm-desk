@@ -507,13 +507,22 @@ class ClientCache:
 		connection_class = (
 			_TrackedUnixDomainSocketConnection if redis_url.startswith("unix://") else _TrackedConnection
 		)
-		self.redis: RedisWrapper = RedisWrapper.from_url(
-			redis_url,
-			connection_class=connection_class,
-			_invalidator_id=self.invalidator_id,
-			protocol=2,
-		)
-		self.invalidator_thread = self.run_invalidator_thread()
+		try:
+			self.redis: RedisWrapper = RedisWrapper.from_url(
+				redis_url,
+				connection_class=connection_class,
+				_invalidator_id=self.invalidator_id,
+				protocol=2,
+			)
+			# crm-desk patch, see PATCHES.md. Connections are lazy; ping forces the
+			# CLIENT TRACKING handshake now so an unsupported server fails here.
+			self.redis.ping()
+			self.invalidator_thread = self.run_invalidator_thread()
+		except redis.exceptions.RedisError:
+			# Some managed Redis (e.g. Redis Cloud) reject CLIENT TRACKING ... REDIRECT
+			# over RESP2. Fall back to plain frappe.cache, same as the ConnectionError path above.
+			self.redis = frappe.cache
+			self.healthy = False
 
 	def get_value(self, key, *, shared=False, generator=None):
 		if not self.healthy:
