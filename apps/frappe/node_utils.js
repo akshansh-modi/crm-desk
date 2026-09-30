@@ -70,6 +70,9 @@ function get_redis_subscriber(kind = "redis_queue", options = {}) {
 	} else {
 		client = redis.createClient({ url: connStr, ...options });
 	}
+	// crm-desk patch, see PATCHES.md. Without an error listener node-redis throws on a
+	// dropped connection and kills socketio; with one it logs and reconnects on its own.
+	client.on("error", (err) => console.error("[redis]", err.message));
 	return client;
 }
 

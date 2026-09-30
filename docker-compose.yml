@@ -6,6 +6,8 @@ services:
   frappe:
     image: frappe/bench:latest
     command: bash /workspace/docker/entrypoint.sh
+    # bench start stops everything if one process dies; bring the container back
+    restart: unless-stopped
     env_file: .env
     environment:
       SHELL: /bin/bash
