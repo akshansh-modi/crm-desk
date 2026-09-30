@@ -30,10 +30,10 @@ Fill in these values in `.env`:
 
 | Line | What to put |
 |---|---|
-| `DB_USER`, `DB_PASSWORD` | SkySQL login (ask a teammate) |
+| `DB_USER`, `DB_PASSWORD` | SkySQL login  |
 | `REDIS_URL` | `redis://default:<password>@<host>:<port>` from Redis Cloud |
-| `ENCRYPTION_KEY` | The **same** value for everyone on the shared site (ask a teammate) |
-| `BENCH_ID` | Your own name. It must be different from your teammates' |
+| `ENCRYPTION_KEY` | The **same** value for everyone on the shared site |
+| `BENCH_ID` | any unique word' |
 | `RUN_SCHEDULER` | `1` for exactly **one** dev, `0` for everyone else |
 
 The host, port and DB name are already filled in.
