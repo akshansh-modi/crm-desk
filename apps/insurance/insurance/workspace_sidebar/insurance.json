@@ -1,0 +1,89 @@
+{
+ "app": "insurance",
+ "creation": "2026-10-02 20:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Workspace Sidebar",
+ "header_icon": "shield-check",
+ "idx": 0,
+ "items": [
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "users",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Customers",
+   "link_to": "Insurance Customer",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "file-text",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Policies",
+   "link_to": "Insurance Policy",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "user-round",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Insured Members",
+   "link_to": "Insured Member",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "wallet",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Premium EMIs",
+   "link_to": "Premium EMI",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "hospital",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Claims",
+   "link_to": "Insurance Claim",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "building-2",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Network Hospitals",
+   "link_to": "Network Hospital",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-10-02 20:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Insurance",
+ "name": "Insurance",
+ "owner": "Administrator",
+ "standard": 1,
+ "title": "Insurance"
+}

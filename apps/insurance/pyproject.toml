@@ -1,0 +1,15 @@
+[project]
+name = "insurance"
+authors = [{ name = "crm-desk" }]
+description = "Insurance data (customers, policies, members, EMIs, claims, hospitals) for the customer 360 view"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = ["Faker~=18.10.1"]  # demo data in insurance/seed.py
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.bench.frappe-dependencies]
+frappe = ">=16.0.0-dev,<17.0.0"

@@ -107,6 +107,8 @@
           </template>
         </FileUploader>
       </div>
+      <!-- crm-desk patch, see PATCHES.md: insurance Customer 360 card -->
+      <Customer360 class="border-b px-5 py-4" :contact="contact.doc?.name" />
       <div
         v-if="sections.data"
         class="flex flex-1 flex-col justify-between overflow-hidden"
@@ -172,6 +174,7 @@
 <script setup>
 import ErrorPage from '@/components/ErrorPage.vue'
 import Resizer from '@/components/Resizer.vue'
+import Customer360 from '@/components/Customer360.vue' // crm-desk patch, see PATCHES.md
 import Icon from '@/components/Icon.vue'
 import SidePanelLayout from '@/components/SidePanelLayout.vue'
 import LayoutHeader from '@/components/LayoutHeader.vue'

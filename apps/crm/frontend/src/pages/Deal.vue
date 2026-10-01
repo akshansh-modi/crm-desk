@@ -132,6 +132,11 @@
         v-model="doc"
         @updateField="updateField"
       />
+      <!-- crm-desk patch, see PATCHES.md: insurance Customer 360 card -->
+      <Customer360
+        class="border-b px-5 py-4"
+        :contact="dealContacts.data?.find((c) => c.is_primary)?.name"
+      />
       <div
         v-if="sections.data"
         class="flex flex-1 flex-col justify-between overflow-hidden"
@@ -340,6 +345,7 @@ import DeleteLinkedDocModal from '@/components/DeleteLinkedDocModal.vue'
 import ErrorPage from '@/components/ErrorPage.vue'
 import Icon from '@/components/Icon.vue'
 import Resizer from '@/components/Resizer.vue'
+import Customer360 from '@/components/Customer360.vue' // crm-desk patch, see PATCHES.md
 import LoadingIndicator from '@/components/Icons/LoadingIndicator.vue'
 import ActivityIcon from '@/components/Icons/ActivityIcon.vue'
 import EmailIcon from '@/components/Icons/EmailIcon.vue'

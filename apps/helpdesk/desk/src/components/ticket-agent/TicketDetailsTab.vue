@@ -25,6 +25,13 @@
           />
         </div>
 
+        <!-- crm-desk patch, see PATCHES.md: insurance Customer 360 card -->
+        <Customer360
+          class="p-4"
+          :contact="ticket.doc?.contact"
+          :email="ticket.doc?.raised_by"
+        />
+
         <!-- Key Info (core fields) -->
         <Section
           :label="__('Overview')"
@@ -170,6 +177,7 @@ import Section from "../Section.vue";
 import Tags from "../tag/Tags.vue";
 import TicketField from "../TicketField.vue";
 import AssignTo from "./AssignTo.vue";
+import Customer360 from "../Customer360.vue"; // crm-desk patch, see PATCHES.md
 import TicketContact from "./TicketContact.vue";
 import TicketFeedback from "./TicketFeedback.vue";
 import TicketSLA from "./TicketSLA.vue";
