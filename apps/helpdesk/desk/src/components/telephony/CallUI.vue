@@ -1,6 +1,8 @@
 <template>
   <TwilioCallUI ref="twilio" />
   <ExotelCallUI ref="exotel" />
+  <!-- crm-desk patch, see PATCHES.md: notes for calls placed from a ticket -->
+  <CallNote v-if="noteTarget" :key="noteTarget.startedAt" :target="noteTarget" @close="noteTarget = null" />
   <Dialog
     v-model:open="show"
     title="Make call"
@@ -43,6 +45,7 @@ import { FormControl, call, toast } from "frappe-ui";
 import { nextTick, ref, watch } from "vue";
 import TwilioCallUI from "./TwilioCallUI.vue";
 import ExotelCallUI from "./ExotelCallUI.vue";
+import CallNote from "./CallNote.vue"; // crm-desk patch, see PATCHES.md
 import { useTelephonyStore } from "@/stores/telephony";
 import { storeToRefs } from "pinia";
 
@@ -67,6 +70,7 @@ const props = defineProps({
 });
 
 function makeCall({ number, doctype, docname }) {
+  pendingTicket.value = doctype === "HD Ticket" ? docname : null; // crm-desk patch, see PATCHES.md
   telephonyStore.setLinkDoc({
     docname,
     doctype,
@@ -91,7 +95,22 @@ function makeCall({ number, doctype, docname }) {
   makeCallUsing();
 }
 
+// crm-desk patch, see PATCHES.md: the ticket is captured when the call starts, never read
+// from the store later, so a note can't land on another (stale) ticket.
+const noteTarget = ref<{ ticket: string; number: string; medium: string; startedAt: number } | null>(null);
+const pendingTicket = ref<string | null>(null);
+
 function makeCallUsing() {
+  if (pendingTicket.value && mobileNumber.value) {
+    noteTarget.value = {
+      ticket: pendingTicket.value,
+      number: mobileNumber.value,
+      medium: callMedium.value,
+      startedAt: Date.now(),
+    };
+  }
+  pendingTicket.value = null;
+
   if (isDefaultMedium.value && callMedium.value) {
     setCallingMedium();
     isDefaultMedium.value = false;
