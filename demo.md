@@ -74,10 +74,17 @@ The ID is the policy number, e.g. `POL1694311447`.
 | Field | Type / values |
 |---|---|
 | member | Link → Insured Member (must belong to the same customer) |
+| health_id | Read-only and unique. `PI` + 6 digits for the policyholder (relationship Self), `HI` + 6 digits for every other member. |
 | member_name, relationship | Copied from the member |
 | sum_insured | This member's cover |
 | entry_date | Date |
 | is_active | Yes/No |
+
+**Health IDs:**
+- **Who gets which:** a health ID belongs to a member's row on a specific policy, not to the person.
+- **Assigned automatically:** IDs are given when the policy is saved, using Frappe's naming series (`PI000001`, `HI000001`, …), so they are sequential and never repeat.
+- **Renewals:** a renewal is a new policy, so every member gets a new ID, e.g. `PI000001` on the 2025 policy and `PI000002` on the 2026 one.
+- **Never overwritten:** an existing ID is never changed by later edits.
 
 ### 1.5 Policy Document (sub-table inside Policy)
 
@@ -109,6 +116,7 @@ The ID is the claim number, e.g. `CLM787422153`.
 | customer | Copied from the policy |
 | member | Link → Insured Member (must be covered on that policy) |
 | member_name | Copied from the member |
+| health_id | The member's health ID on this policy (copied on save) |
 | hospital | Link → Network Hospital |
 | claim_type | Cashless / Reimbursement |
 | status | Intimated / Under Review / Query Raised / Approved / Rejected / Settled |
@@ -154,8 +162,8 @@ apps/insurance/insurance/insurance/doctype/
 | File | What it does |
 |---|---|
 | `doctype/*/*.json` | Table definitions. The source of truth. |
-| `doctype/insurance_policy/insurance_policy.py` | Validation: end date after start date; members belong to the policy's customer |
-| `doctype/insurance_claim/insurance_claim.py` | Validation: member is on the policy, admission inside the policy period, amount limits |
+| `doctype/insurance_policy/insurance_policy.py` | Validation: end date after start date; members belong to the policy's customer. Assigns health IDs (PI/HI). |
+| `doctype/insurance_claim/insurance_claim.py` | Validation: member is on the policy, admission inside the policy period, amount limits. Copies the member's health ID from the policy. |
 | `doctype/*/*_list.js` | Coloured status labels in the list views |
 | `hooks.py` | When a Contact is saved, its name, email and mobile are copied onto the Insurance Customer |
 | `workspace_sidebar/insurance.json` | The Insurance sidebar in Desk (`/app`) |
@@ -228,7 +236,46 @@ EMIs, claims, tickets, deals → shown in the card and window
 
 ---
 
-## 5. Where the 360 view appears
+## 5. Replying to the customer, and sending documents
+
+### Who the reply goes to
+
+| Scenario | Behaviour |
+|---|---|
+| Agent clicks **Reply** (bottom bar or the single arrow on an email) | To = the customer's email (`raised_by`); no Cc. |
+| Agent clicks **Reply All** on the customer's email | To = customer; Cc = anyone else who was on the email. **The helpdesk's own inboxes are always removed** (they used to land in Cc). |
+| Customer had someone else in Cc (spouse, broker) | Incoming Cc is stored on the ticket's email (shown as `cc:` on the card) and kept in Cc on Reply All. The agent can remove them with ×. |
+| Agent replies to **their own** sent email (Reply or Reply All) | Goes back to that email's original recipients, so the customer is in To. The agent's own address and the helpdesk inboxes are never recipients; if To would be empty, the Cc people move up to To, else the ticket's customer. (Helpdesk used to compare user id with sender email, which differ for Administrator, so the reply went to the agent with the customer in Cc.) |
+| Customer writes from a secondary address | Reply goes to the address they wrote from. The 360 view still finds them via the Contact's other emails. |
+| Agent wants a different address of the customer | The To/Cc/Bcc fields search Contacts as you type, or take any address. |
+| Unknown sender (not a Contact) | Reply works normally; the 360 card says "Not an insurance customer" and no documents are offered. |
+| Several outgoing email accounts | Helpdesk shows a **From** selector. With one account, From is hidden and that account sends. |
+
+### When the customer receives it
+
+- **Helpdesk:** replies go through Frappe's **Email Queue**. With "Instantly send e-mail" off (the default), the queue is sent by a background job every ~4 minutes, so expect up to about 4 minutes. To send on clicking Send, tick **Instantly send e-mail** in Desk → **HD Settings** (`/app/hd-settings`, Ticket Routing area). It isn't in Helpdesk's own settings screen.
+- **CRM:** always queued; there is no instant-send setting. Shortening the job cycle (`scheduler_tick_interval`) speeds up every scheduled job, so on the shared cloud site it's a team decision.
+- **Checking delivery:** Desk → **Email Queue** shows each email as Not Sent, Sent or Error.
+
+### Sending policy documents
+
+- **Attach button:** in a ticket reply, the paperclip opens **Attach files**. It lists the customer's documents grouped by policy (current policy first), each with a Preview link, plus **Upload from computer**. If the sender isn't a customer or has no documents, the paperclip opens the normal file dialog.
+- **Copies only:** attaching makes a **copy** of the file on the ticket (`insurance.api.attach_ticket_document`). Removing it from the draft deletes only the copy, never the policy's document.
+- **Server-side checks:** the server only allows documents that belong to that ticket's customer, and only for users who can edit the ticket and read the policy.
+- **Privacy warning:** if any To/Cc/Bcc address isn't one of the customer's registered emails, the picker warns, because policy documents contain health details. It warns but doesn't block.
+- **Demo files:** the seed downloads a public sample PDF (`DEMO_PDF_URL` in `seed.py`) and uses it for every document. A tiny marker after the end of each copy makes every file unique, so each email attachment carries its own policy's name. Offline, it falls back to a generated one-page PDF.
+
+---
+
+## 6. Branding
+
+- **Helpdesk:** logo and favicon live in Helpdesk's settings. The logo used to be cropped to a 32px square, which cut wide logos; it is now shown whole, up to 64px wide (32px when the sidebar is collapsed), the same as CRM.
+- **CRM:** Settings → System Configuration → **Brand** (Sales Manager or System Manager only). Stored in **FCRM Settings**.
+- The two apps are branded separately: upload the same logo and favicon in both.
+
+---
+
+## 7. Where the 360 view appears
 
 | App | Page | Uses |
 |---|---|---|

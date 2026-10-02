@@ -11,7 +11,8 @@
             : 'w-full px-2 hover:bg-surface-gray-3'
         "
       >
-        <BrandLogo />
+        <!-- crm-desk patch, see PATCHES.md: wide logos fit (like CRM), narrower when collapsed -->
+        <BrandLogo :class="collapsed ? 'max-w-8' : 'max-w-16'" />
         <div
           class="flex flex-1 flex-col text-start duration-300 ease-in-out overflow-hidden rtl:items-start pe-2"
           :class="
