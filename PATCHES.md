@@ -13,3 +13,5 @@ re-apply these or check whether upstream fixed them. Each changed spot is marked
 | `apps/crm/frontend/src/components/Customer360.vue` (new file) | Same file as the Helpdesk copy | Insurance 360 view in CRM. |
 | `apps/crm/frontend/src/pages/Contact.vue` | Import + render `<Customer360>` under the contact header | 360 view on a CRM contact. |
 | `apps/crm/frontend/src/pages/Deal.vue` | Import + render `<Customer360>` under the SLA block, for the deal's primary contact | 360 view on a CRM deal. |
+| `apps/helpdesk/desk/src/components/CustomerDocumentsPicker.vue` (new file) | Attach picker listing the ticket customer's policy documents (`insurance.api.get_ticket_documents`), with "Upload from computer" | Agents can send a customer their policy documents from the reply composer. Warns when a recipient isn't one of the customer's emails. |
+| `apps/helpdesk/desk/src/components/EmailEditor.vue` | Paperclip opens `CustomerDocumentsPicker` when the customer has documents; otherwise the file dialog as before | Same feature. Attachments are copies (`insurance.api.attach_ticket_document`), since removing an attachment deletes its File. |

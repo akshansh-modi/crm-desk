@@ -57,7 +57,7 @@ def get_customer_360(contact: str | None = None, email: str | None = None) -> di
 	)
 	names = [p.name for p in policies]
 	# Child rows: their parents were permission-checked by the get_list above.
-	members_by_policy = _children("Policy Member", names, ["parent", "member", "member_name", "relationship", "sum_insured", "is_active"])
+	members_by_policy = _children("Policy Member", names, ["parent", "member", "health_id", "member_name", "relationship", "sum_insured", "is_active"])
 	docs_by_policy = _children("Policy Document", names, ["parent", "document_type", "file", "uploaded_on"])
 	for p in policies:
 		p["members"] = members_by_policy.get(p.name, [])
@@ -80,7 +80,7 @@ def get_customer_360(contact: str | None = None, email: str | None = None) -> di
 		"Insurance Claim",
 		filters={"customer": customer},
 		fields=[
-			"name", "policy", "member", "member_name", "hospital", "claim_type", "status", "admission_date",
+			"name", "policy", "member", "member_name", "health_id", "hospital", "claim_type", "status", "admission_date",
 			"discharge_date", "diagnosis", "claimed_amount", "approved_amount", "settled_amount", "settled_on", "rejection_reason",
 		],
 		order_by="admission_date desc",
@@ -156,3 +156,88 @@ def _summary(policies, emis, claims):
 		"total_claims": len(claims),
 		"total_settled": sum(flt(c.settled_amount) for c in claims),
 	}
+
+
+# ---------------------------------------------------------------- sharing documents on a ticket
+
+
+def _ticket_customer(ticket):
+	"""(contact, customer) for a Helpdesk ticket, resolved the same way as the 360 view."""
+	frappe.has_permission("HD Ticket", doc=ticket, throw=True)
+	t = frappe.db.get_value("HD Ticket", ticket, ["contact", "raised_by"], as_dict=True)
+	contact = t.contact or _contact_from_email(t.raised_by)
+	customer = contact and frappe.db.get_value("Insurance Customer", {"contact": contact})
+	return contact, customer
+
+
+@frappe.whitelist()
+def get_ticket_documents(ticket: str) -> dict:
+	"""The ticket customer's policy documents, for the reply composer's attach picker."""
+	contact, customer = _ticket_customer(ticket)
+	if not customer or not frappe.has_permission("Insurance Policy", "read"):
+		return {"documents": [], "emails": []}
+
+	policies = {
+		p.name: p
+		for p in frappe.get_list(
+			"Insurance Policy",
+			filters={"customer": customer},
+			fields=["name", "product_name", "status", "start_date", "end_date"],
+		)
+	}
+	rows = frappe.get_all(
+		"Policy Document",
+		filters={"parenttype": "Insurance Policy", "parent": ("in", list(policies) or [""])},
+		fields=["name", "parent", "document_type", "file", "uploaded_on"],
+		order_by="idx asc",
+	)
+	documents = [
+		{
+			"name": r.name,
+			"document_type": r.document_type,
+			"file_name": f"{r.document_type} - {r.parent}.pdf",
+			"file_url": r.file,
+			"policy": r.parent,
+			"product_name": policies[r.parent].product_name,
+			"policy_status": policies[r.parent].status,
+			"start_date": policies[r.parent].start_date,
+			"end_date": policies[r.parent].end_date,
+		}
+		for r in rows
+		if r.file
+	]
+	documents.sort(key=lambda d: d["start_date"], reverse=True)  # stable: keeps idx order within a policy
+	emails = frappe.get_all("Contact Email", filters={"parent": contact, "parenttype": "Contact"}, pluck="email_id")
+	return {"documents": documents, "emails": emails}
+
+
+@frappe.whitelist(methods=["POST"])
+def attach_ticket_document(ticket: str, document: str) -> dict:
+	"""Attach a copy of one of the ticket customer's policy documents (a Policy Document row) to the ticket.
+
+	A copy, because the composer deletes an attachment's File when the agent removes it,
+	and that must never delete the customer's actual policy document.
+	"""
+	frappe.has_permission("HD Ticket", "write", doc=ticket, throw=True)
+	_contact, customer = _ticket_customer(ticket)
+	row = frappe.db.get_value("Policy Document", document, ["parent", "parenttype", "document_type", "file"], as_dict=True)
+	if (
+		not customer
+		or not row
+		or row.parenttype != "Insurance Policy"
+		or frappe.db.get_value("Insurance Policy", row.parent, "customer") != customer
+	):
+		frappe.throw(frappe._("This document doesn't belong to the ticket's customer"), frappe.PermissionError)
+	frappe.has_permission("Insurance Policy", doc=row.parent, throw=True)
+
+	copy = frappe.get_doc(
+		{
+			"doctype": "File",
+			"file_url": row.file,
+			"file_name": f"{row.document_type} - {row.parent}.pdf",
+			"is_private": 1,
+			"attached_to_doctype": "HD Ticket",
+			"attached_to_name": ticket,
+		}
+	).insert(ignore_permissions=True)
+	return {"name": copy.name, "file_name": copy.file_name, "file_url": copy.file_url}

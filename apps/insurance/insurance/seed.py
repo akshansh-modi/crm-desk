@@ -9,12 +9,15 @@ member covered by that policy, with amounts that fit the diagnosis; ages, cities
 are consistent with each other and with the policy status.
 """
 
+import functools
 import random
 
 import frappe
 from frappe.utils import add_days, add_months, add_years, date_diff, getdate, today
 
 DEMO_EMAIL = "akshanshmodi2002@gmail.com"
+# Public sample PDF used as every policy document in the demo (fetched at seed time, not committed).
+DEMO_PDF_URL = "https://policy.tennessee.edu/wp-content/uploads/PolicyTemplate.pdf"
 
 # (city, state, pincode prefix): addresses are drawn together so they agree.
 CITIES = [
@@ -59,8 +62,8 @@ def reset():
 		frappe.db.delete(dt)
 	frappe.db.delete("Policy Member")
 	frappe.db.delete("Policy Document")
-	for f in frappe.get_all("File", filters={"attached_to_doctype": "Insurance Policy"}, pluck="name"):
-		frappe.delete_doc("File", f, ignore_permissions=True)
+	# Rows only: the file on disk may also be attached to tickets it was shared on.
+	frappe.db.delete("File", {"attached_to_doctype": "Insurance Policy"})
 	for name in contacts:
 		try:
 			frappe.delete_doc("Contact", name, force=0, ignore_permissions=True)
@@ -317,8 +320,22 @@ def _policy(customer, members, start, status, product, sum_insured, frequency, c
 	return policy
 
 
+@functools.cache
+def _demo_pdf():
+	try:
+		import requests
+
+		r = requests.get(DEMO_PDF_URL, timeout=20)
+		if r.ok and r.content.startswith(b"%PDF"):
+			return r.content
+	except Exception:
+		pass
+	return None
+
+
 def _attach_documents(policy, customer, members):
-	"""Real (tiny) PDFs as private File attachments, so the document links in the 360 view open."""
+	"""Private File attachments, so the document links in the 360 view open.
+	Uses the sample PDF from DEMO_PDF_URL; offline, falls back to a generated one-page PDF."""
 	holder = frappe.db.get_value("Insurance Customer", customer.name, "customer_name")
 	for doc_type, uploaded_on in (("Policy Schedule", policy.start_date), ("Proposal Form", add_days(policy.start_date, -7))):
 		lines = [
@@ -333,11 +350,14 @@ def _attach_documents(policy, customer, members):
 		file = frappe.get_doc(
 			{
 				"doctype": "File",
-				"file_name": f"{policy.name}-{doc_type.lower().replace(' ', '-')}.pdf",
+				"file_name": f"{doc_type} - {policy.name}.pdf",
 				"is_private": 1,
 				"attached_to_doctype": "Insurance Policy",
 				"attached_to_name": policy.name,
-				"content": _pdf(lines),
+				# The trailing comment (ignored by PDF readers) makes every copy unique. Identical files
+				# would share one URL and one stored name, so an email could go out named after another
+				# customer's policy. Real documents are distinct files anyway.
+				"content": (_demo_pdf() + f"\n%{policy.name} {doc_type}\n".encode()) if _demo_pdf() else _pdf(lines),
 			}
 		).insert(ignore_permissions=True)
 		policy.append("documents", {"document_type": doc_type, "file": file.file_url, "uploaded_on": uploaded_on})

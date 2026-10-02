@@ -270,13 +270,14 @@
           <!-- Members -->
           <div v-else-if="tab === 'members'">
             <DataTable
-              :columns="['Name', 'Relationship', 'Age', 'Gender', 'Pre-existing conditions', 'Claims']"
+              :columns="['Name', 'Health ID (current policy)', 'Relationship', 'Age', 'Gender', 'Pre-existing conditions', 'Claims']"
               :empty="!data.members.length"
             >
               <tr v-for="m in data.members" :key="m.name" class="hover:bg-surface-gray-1">
                 <td class="font-medium text-ink-gray-9">
                   <a :href="`/app/insured-member/${m.name}`" target="_blank" class="hover:underline">{{ m.member_name }}</a>
                 </td>
+                <td class="font-mono text-xs">{{ currentHealthIds[m.name] || "Not covered" }}</td>
                 <td>{{ m.relationship }}</td>
                 <td>{{ age(m.date_of_birth) }}</td>
                 <td>{{ m.gender || "—" }}</td>
@@ -304,7 +305,7 @@
                     <Pill :tone="statusTone(cl.status)">{{ cl.status }}</Pill>
                   </div>
                   <p class="mt-0.5 text-sm text-ink-gray-5">
-                    {{ cl.name }} · {{ cl.member_name }} · {{ cl.claim_type }} · {{ cl.hospital_name || cl.hospital || "No hospital" }}
+                    {{ cl.name }} · {{ cl.member_name }}<template v-if="cl.health_id"> ({{ cl.health_id }})</template> · {{ cl.claim_type }} · {{ cl.hospital_name || cl.hospital || "No hospital" }}
                   </p>
                 </div>
                 <p class="text-sm text-ink-gray-6">
@@ -449,6 +450,7 @@ const initials = computed(() =>
 )
 const kycTone = computed(() => ({ Verified: "green", Pending: "amber", Rejected: "red" })[data.value?.customer?.kyc_status] || "gray")
 const memberInfo = computed(() => Object.fromEntries((data.value?.members || []).map((m) => [m.name, m])))
+const currentHealthIds = computed(() => Object.fromEntries((current.value?.members || []).map((m) => [m.member, m.health_id])))
 const claimsByMember = computed(() =>
   (data.value?.claims || []).reduce((acc, c) => ((acc[c.member] = (acc[c.member] || 0) + 1), acc), {}),
 )
@@ -597,6 +599,7 @@ const PolicySummary = defineComponent({
             const info = p.memberInfo?.[m.member] || {}
             return h("span", { class: "inline-flex items-center gap-1 rounded-full border border-outline-gray-2 px-2.5 py-0.5 text-xs text-ink-gray-7" }, [
               `${m.member_name} · ${m.relationship}${info.date_of_birth ? " · " + age(info.date_of_birth) + "y" : ""}`,
+              m.health_id && h("span", { class: "font-mono text-ink-gray-5" }, m.health_id),
               info.pre_existing_conditions && h("span", { class: ["rounded px-1", toneClasses.amber], title: "Pre-existing conditions" }, info.pre_existing_conditions),
             ])
           })),

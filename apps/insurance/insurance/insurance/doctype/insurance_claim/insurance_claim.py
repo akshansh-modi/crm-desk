@@ -11,7 +11,10 @@ class InsuranceClaim(Document):
 	def validate(self):
 		policy = frappe.db.get_value("Insurance Policy", self.policy, ["start_date", "end_date", "sum_insured"], as_dict=True)
 
-		if not frappe.db.exists("Policy Member", {"parent": self.policy, "parenttype": "Insurance Policy", "member": self.member}):
+		self.health_id = frappe.db.get_value(
+			"Policy Member", {"parent": self.policy, "parenttype": "Insurance Policy", "member": self.member}, "health_id"
+		)
+		if self.health_id is None:
 			frappe.throw(_("{0} is not covered under policy {1}").format(self.member_name or self.member, self.policy))
 
 		if self.admission_date and not (getdate(policy.start_date) <= getdate(self.admission_date) <= getdate(policy.end_date)):

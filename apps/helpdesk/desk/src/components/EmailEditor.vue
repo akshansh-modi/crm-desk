@@ -160,10 +160,21 @@
               >
                 <template #default="{ openFileSelector, uploading }">
                   {{ void (isUploading = uploading) }}
-                  <Tooltip :text="__('Attach file')">
+                  <!-- crm-desk patch, see PATCHES.md: customer's policy documents in the attach picker -->
+                  <CustomerDocumentsPicker
+                    v-if="doctype === 'HD Ticket'"
+                    ref="docPickerRef"
+                    v-model:open="showDocPicker"
+                    :ticket-id="ticketId"
+                    :recipients="[...(toEmailsClone || []), ...(ccEmailsClone || []), ...(bccEmailsClone || [])]"
+                    :attached-names="attachments.map((a) => a.file_name)"
+                    @attach="(f) => attachments.push(f)"
+                    @upload="openFileSelector()"
+                  />
+                  <Tooltip :text="docPickerRef?.available ? __('Attach file or customer documents') : __('Attach file')">
                     <button
                       class="flex rounded p-1 text-ink-gray-8 transition-colors focus-within:ring-0 hover:bg-surface-gray-3"
-                      @click="openFileSelector()"
+                      @click="docPickerRef?.available ? (showDocPicker = true) : openFileSelector()"
                       :disabled="uploading"
                     >
                       <LoadingIndicator v-if="uploading" class="h-4 w-4" />
@@ -220,6 +231,7 @@ import { buildEditorExtensions, fullToolbar } from "@/components/editor/config";
 import EmailMultiSelect from "@/components/EmailMultiSelect.vue";
 import { createDialog } from "@/components/dialogs";
 import { AttachmentIcon } from "@/components/icons";
+import CustomerDocumentsPicker from "@/components/CustomerDocumentsPicker.vue"; // crm-desk patch, see PATCHES.md
 import SavedReplyActions from "@/components/SavedReplyActions/SavedReplyActions.vue";
 import { useTyping } from "@/composables/realtime";
 import { getUserEmailInfo } from "@/composables/useUserEmailInfo";
@@ -391,6 +403,8 @@ const hasMultipleSenders = computed(() => (from?.value.length ?? 0) > 1);
 
 const attachments = ref([]);
 const isUploading = ref(false);
+const docPickerRef = ref(); // crm-desk patch, see PATCHES.md
+const showDocPicker = ref(false); // crm-desk patch, see PATCHES.md
 
 async function removeAttachment(attachment) {
   attachments.value = attachments.value.filter((a) => a !== attachment);
