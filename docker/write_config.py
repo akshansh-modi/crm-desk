@@ -50,8 +50,9 @@ if env["MODE"] == "cloud":
 	for folder in ("public/files", "private/backups", "private/files", "locks", "logs"):
 		(sites / env["SITE_NAME"] / folder).mkdir(parents=True, exist_ok=True)
 
+	site_config = sites / env["SITE_NAME"] / "site_config.json"
 	merge(
-		sites / env["SITE_NAME"] / "site_config.json",
+		site_config,
 		{
 			"db_type": "mariadb",
 			"db_host": required("DB_HOST"),
@@ -59,9 +60,18 @@ if env["MODE"] == "cloud":
 			"db_name": required("DB_NAME"),
 			"db_user": required("DB_USER"),
 			"db_password": required("DB_PASSWORD"),
-			"db_ssl_ca": "/etc/ssl/certs/ca-certificates.crt",  # SkySQL requires SSL
 			# Must be identical for everyone on the shared site, or saved passwords
 			# (email accounts etc.) encrypted by one dev can't be decrypted by the other.
 			"encryption_key": required("ENCRYPTION_KEY"),
 		},
 	)
+
+	# SSL: DB_SSL_CA = CA file to verify the server with (e.g. the system bundle for SkySQL);
+	# empty = no SSL (fine over Tailscale, which already encrypts). Removed explicitly when
+	# empty, since merge() never deletes and an old value would otherwise stick around.
+	conf = json.loads(site_config.read_text())
+	if env.get("DB_SSL_CA"):
+		conf["db_ssl_ca"] = env["DB_SSL_CA"]
+	else:
+		conf.pop("db_ssl_ca", None)
+	site_config.write_text(json.dumps(conf, indent=1))

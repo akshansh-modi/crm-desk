@@ -54,6 +54,26 @@ if [ "$MODE" = "local" ] && [ ! -f "sites/$SITE_NAME/site_config.json" ]; then
         --mariadb-user-host-login-scope='%'
 fi
 
+# cloud: if the DB is empty (new database), build the site inside it. --no-setup-db = the DB and
+# user already exist, just create the tables; it keeps the site_config.json write_config.py wrote
+# (so the shared ENCRYPTION_KEY is used). Only runs when the DB answers AND has no Frappe tables.
+if [ "$MODE" = "cloud" ]; then
+    rc=0; env/bin/python /workspace/docker/site_in_db.py || rc=$?
+    if [ "$rc" = 3 ]; then
+        echo "Cloud DB '$DB_NAME' is empty, creating site $SITE_NAME in it..."
+        bench new-site "$SITE_NAME" --force --no-setup-db \
+            --db-name "$DB_NAME" \
+            --admin-password "${ADMIN_PASSWORD:-admin}"
+    elif [ "$rc" = 4 ]; then
+        # Never wipe a shared DB automatically; someone has to confirm it's safe to empty it.
+        echo "Cloud DB '$DB_NAME' is half-built (has tables, but Frappe never finished installing)."
+        echo "Empty the database by hand, then restart to build the site again."
+        sleep infinity  # stay up instead of exiting, so restart: unless-stopped doesn't loop
+    elif [ "$rc" != 0 ]; then
+        echo "Can't reach the cloud DB (see error above)"; exit 1
+    fi
+fi
+
 # Install our apps on the site. Already-installed apps are skipped ("already installed"),
 # so after the first run this is a no-op. Add custom apps to this line when they're ready.
 # Deliberately NOT `bench migrate`: on the shared cloud DB that would push one dev's
