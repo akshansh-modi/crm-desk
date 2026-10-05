@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "creation": "2026-10-03 13:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "health_id_section",
+  "policyholder_health_id_format",
+  "column_break_1",
+  "member_health_id_format"
+ ],
+ "fields": [
+  {
+   "fieldname": "health_id_section",
+   "fieldtype": "Section Break",
+   "label": "Health IDs",
+   "description": "Every member covered on a policy gets a health ID when the policy is saved. Renewals (new policies) get new IDs. Leave empty to not generate health IDs."
+  },
+  {
+   "fieldname": "policyholder_health_id_format",
+   "fieldtype": "Data",
+   "label": "Policyholder health ID format",
+   "description": "For the member whose relationship is Self. Naming series: # = one digit, \".\" separates parts. E.g. PI.###### gives PI000001, PI000002\u2026"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "member_health_id_format",
+   "fieldtype": "Data",
+   "label": "Member health ID format",
+   "description": "For every other member. E.g. HI.###### gives HI000001, HI000002\u2026"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-03 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Insurance",
+ "name": "Insurance Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
