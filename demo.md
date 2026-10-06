@@ -74,7 +74,7 @@ The ID is the policy number, e.g. `POL1694311447`.
 | Field | Type / values |
 |---|---|
 | member | Link → Insured Member (must belong to the same customer) |
-| health_id | Read-only and unique. `PI` + 6 digits for the policyholder (relationship Self), `HI` + 6 digits for every other member. |
+| health_id | Read-only and unique. Format set in **Insurance Settings** (one for the policyholder, one for other members). |
 | member_name, relationship | Copied from the member |
 | sum_insured | This member's cover |
 | entry_date | Date |
@@ -82,7 +82,8 @@ The ID is the policy number, e.g. `POL1694311447`.
 
 **Health IDs:**
 - **Who gets which:** a health ID belongs to a member's row on a specific policy, not to the person.
-- **Assigned automatically:** IDs are given when the policy is saved, using Frappe's naming series (`PI000001`, `HI000001`, …), so they are sequential and never repeat.
+- **Format set in the UI:** Desk → Insurance → **Insurance Settings** → *Policyholder health ID format* and *Member health ID format*, written as a naming series (`#` = a digit), e.g. `PI.######` → `PI000001`, `HI.######` → `HI000001`. If they're empty, no health IDs are generated and saving a policy shows a reminder.
+- **Assigned automatically:** IDs are given when the policy is saved, sequential and never repeated.
 - **Renewals:** a renewal is a new policy, so every member gets a new ID, e.g. `PI000001` on the 2025 policy and `PI000002` on the 2026 one.
 - **Never overwritten:** an existing ID is never changed by later edits.
 
@@ -162,7 +163,8 @@ apps/insurance/insurance/insurance/doctype/
 | File | What it does |
 |---|---|
 | `doctype/*/*.json` | Table definitions. The source of truth. |
-| `doctype/insurance_policy/insurance_policy.py` | Validation: end date after start date; members belong to the policy's customer. Assigns health IDs (PI/HI). |
+| `doctype/insurance_policy/insurance_policy.py` | Validation: end date after start date; members belong to the policy's customer. Assigns health IDs in the formats from Insurance Settings. |
+| `doctype/insurance_settings/` | **Insurance Settings** (single page in Desk): health ID formats |
 | `doctype/insurance_claim/insurance_claim.py` | Validation: member is on the policy, admission inside the policy period, amount limits. Copies the member's health ID from the policy. |
 | `doctype/*/*_list.js` | Coloured status labels in the list views |
 | `hooks.py` | When a Contact is saved, its name, email and mobile are copied onto the Insurance Customer |
