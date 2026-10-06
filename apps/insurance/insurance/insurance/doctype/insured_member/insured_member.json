@@ -1,0 +1,141 @@
+{
+ "actions": [],
+ "autoname": "MEM-.#####",
+ "creation": "2026-10-02 20:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "customer",
+  "member_name",
+  "relationship",
+  "cb1",
+  "date_of_birth",
+  "gender",
+  "pre_existing_conditions"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Insurance Customer",
+   "reqd": 1,
+   "search_index": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "member_name",
+   "fieldtype": "Data",
+   "label": "Member Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "relationship",
+   "fieldtype": "Select",
+   "label": "Relationship to Policyholder",
+   "options": "Self\nSpouse\nSon\nDaughter\nFather\nMother",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "label": "Date of Birth"
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Select",
+   "label": "Gender",
+   "options": "\nMale\nFemale\nOther"
+  },
+  {
+   "fieldname": "pre_existing_conditions",
+   "fieldtype": "Small Text",
+   "label": "Pre-existing Conditions"
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Insurance Claim",
+   "link_fieldname": "member",
+   "group": "Claims"
+  },
+  {
+   "link_doctype": "Policy Member",
+   "link_fieldname": "member",
+   "parent_doctype": "Insurance Policy",
+   "table_fieldname": "members",
+   "is_child_table": 1,
+   "group": "Coverage"
+  }
+ ],
+ "modified": "2026-10-02 20:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Insurance",
+ "name": "Insured Member",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1
+  },
+  {
+   "role": "Agent",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Agent Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Sales User",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Sales Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "member_name,customer",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "member_name",
+ "track_changes": 1
+}

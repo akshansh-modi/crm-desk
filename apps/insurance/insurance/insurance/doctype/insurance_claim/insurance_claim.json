@@ -1,0 +1,232 @@
+{
+ "actions": [],
+ "autoname": "field:claim_number",
+ "creation": "2026-10-02 22:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "claim_number",
+  "policy",
+  "customer",
+  "member",
+  "member_name",
+  "health_id",
+  "hospital",
+  "cb1",
+  "claim_type",
+  "status",
+  "admission_date",
+  "discharge_date",
+  "medical_tab",
+  "diagnosis",
+  "amounts_section",
+  "claimed_amount",
+  "approved_amount",
+  "cb2",
+  "settled_amount",
+  "settled_on",
+  "rejection_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "claim_number",
+   "fieldtype": "Data",
+   "label": "Claim Number",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "policy",
+   "fieldtype": "Link",
+   "label": "Policy",
+   "options": "Insurance Policy",
+   "reqd": 1,
+   "search_index": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Insurance Customer",
+   "fetch_from": "policy.customer",
+   "read_only": 1,
+   "search_index": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "member",
+   "fieldtype": "Link",
+   "label": "Member",
+   "options": "Insured Member",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "member_name",
+   "fieldtype": "Data",
+   "label": "Member Name",
+   "fetch_from": "member.member_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "health_id",
+   "fieldtype": "Data",
+   "label": "Health ID",
+   "read_only": 1,
+   "search_index": 1,
+   "description": "The member's health ID on this policy"
+  },
+  {
+   "fieldname": "hospital",
+   "fieldtype": "Link",
+   "label": "Hospital",
+   "options": "Network Hospital"
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "claim_type",
+   "fieldtype": "Select",
+   "label": "Claim Type",
+   "options": "Cashless\nReimbursement",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Intimated\nUnder Review\nQuery Raised\nApproved\nRejected\nSettled",
+   "default": "Intimated",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "admission_date",
+   "fieldtype": "Date",
+   "label": "Admission Date"
+  },
+  {
+   "fieldname": "discharge_date",
+   "fieldtype": "Date",
+   "label": "Discharge Date"
+  },
+  {
+   "fieldname": "medical_tab",
+   "fieldtype": "Tab Break",
+   "label": "Medical & Amounts"
+  },
+  {
+   "fieldname": "diagnosis",
+   "fieldtype": "Small Text",
+   "label": "Diagnosis"
+  },
+  {
+   "fieldname": "amounts_section",
+   "fieldtype": "Section Break",
+   "label": "Amounts"
+  },
+  {
+   "fieldname": "claimed_amount",
+   "fieldtype": "Currency",
+   "label": "Claimed Amount",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "approved_amount",
+   "fieldtype": "Currency",
+   "label": "Approved Amount"
+  },
+  {
+   "fieldname": "cb2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "settled_amount",
+   "fieldtype": "Currency",
+   "label": "Settled Amount"
+  },
+  {
+   "fieldname": "settled_on",
+   "fieldtype": "Date",
+   "label": "Settled On",
+   "depends_on": "eval:doc.status=='Settled'"
+  },
+  {
+   "fieldname": "rejection_reason",
+   "fieldtype": "Small Text",
+   "label": "Rejection Reason",
+   "depends_on": "eval:doc.status=='Rejected'"
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-02 22:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Insurance",
+ "name": "Insurance Claim",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1
+  },
+  {
+   "role": "Agent",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Agent Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Sales User",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Sales Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "claim_number",
+ "track_changes": 1
+}

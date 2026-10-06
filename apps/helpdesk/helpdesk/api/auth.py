@@ -111,4 +111,9 @@ def get_current_user_email_info():
         "email": email,
         "outgoing_emails": outgoing_emails,
         "available_emails": available_emails,
+        # crm-desk patch, see PATCHES.md: the helpdesk's own addresses (incoming and outgoing),
+        # so Reply All never puts the support inbox back into To/Cc.
+        "helpdesk_emails": frappe.db.get_all(
+            "Email Account", filters={"email_id": ("is", "set")}, pluck="email_id"
+        ),
     }

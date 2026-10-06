@@ -117,6 +117,7 @@
 import { AttachmentItem } from "@/components";
 import { useScreenSize } from "@/composables/screen";
 import { useAuthStore } from "@/stores/auth";
+import { getUserEmailInfo } from "@/composables/useUserEmailInfo"; // crm-desk patch, see PATCHES.md
 import { TicketSymbol } from "@/types";
 import { dateFormat, dateTooltipFormat, timeAgo } from "@/utils";
 import { Dropdown } from "frappe-ui";
@@ -154,6 +155,8 @@ const emit = defineEmits(["reply"]);
 const ticket = inject(TicketSymbol)!;
 
 const auth = storeToRefs(useAuthStore());
+const userEmailInfo = getUserEmailInfo(); // crm-desk patch, see PATCHES.md
+const emailAddress = (s: string) => (String(s).match(/<([^>]+)>/)?.[1] || String(s)).trim().toLowerCase();
 
 const { isMobileView } = useScreenSize();
 
@@ -197,30 +200,45 @@ const normalizeAndFilter = (
   } else {
     arr = field || [];
   }
-  return arr.filter(Boolean).filter((item) => !valuesToExclude.includes(item));
+  // crm-desk patch, see PATCHES.md: compare addresses, so '"Support" <a@b.com>' matches 'a@b.com'
+  const exclude = valuesToExclude.filter(Boolean).map(emailAddress);
+  return arr.filter(Boolean).filter((item) => !exclude.includes(emailAddress(item)));
 };
 
+// crm-desk patch, see PATCHES.md: "is this my message?" compared the user id with the sender's
+// email, which differ for Administrator, so replying to your own email went to yourself with the
+// customer in Cc. Our own addresses: user id, the user's email, and the helpdesk inboxes.
+const ownAddresses = () =>
+  [auth.user.value, userEmailInfo.data?.email, ...(userEmailInfo.data?.helpdesk_emails || [])]
+    .filter(Boolean)
+    .map(emailAddress);
+const isOwnMessage = () => ownAddresses().includes(emailAddress(sender.name));
+// Never leave To empty: fall back to the ticket's customer.
+const withFallback = (list: string[]) => (list.length ? list : [ticket.value?.doc?.raised_by].filter(Boolean));
+
 const reply = () => {
-  const user = auth.user.value;
+  const exclude = ownAddresses();
   emit("reply", {
     content: content,
-    to: user === sender.name ? to : sender.name,
+    to: withFallback(normalizeAndFilter(isOwnMessage() ? to : sender.name, exclude)).join(", "),
   });
 };
 
 const replyAll = () => {
-  const user = auth.user.value;
-  const exclude = [user, sender.name];
+  // crm-desk patch, see PATCHES.md: never reply to ourselves or the helpdesk's own inboxes
+  const exclude = [...ownAddresses(), sender.name];
   const filteredTo = normalizeAndFilter(to, exclude);
   const filteredCc = normalizeAndFilter(cc, exclude);
   const filteredBcc = normalizeAndFilter(bcc, exclude);
 
   let _to, _cc, _bcc;
 
-  if (user === sender.name) {
-    // User is the sender, reply to all original recipients
-    _to = filteredTo.join(", ");
-    _cc = filteredCc;
+  if (isOwnMessage()) {
+    // User is the sender, reply to all original recipients. If we were the only one in To,
+    // the Cc people (e.g. the customer) become the To. crm-desk patch, see PATCHES.md
+    const toList = withFallback(filteredTo.length ? filteredTo : filteredCc);
+    _to = toList.join(", ");
+    _cc = filteredCc.filter((x) => !toList.map(emailAddress).includes(emailAddress(x)));
     _bcc = filteredBcc;
   } else {
     // User is a recipient, reply to sender with all other recipients in cc
