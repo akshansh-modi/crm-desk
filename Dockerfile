@@ -44,5 +44,11 @@ RUN { echo 'web: cd sites && ../env/bin/gunicorn --pythonpath ../docker --bind 0
       echo 'worker: bench worker'; \
       echo 'schedule: bench schedule'; } > Procfile
 
+# The base image lets the frappe user run anything as root without a password (sudoers +
+# sudo group). Nothing here needs it, so take it away: the app user stays an ordinary user.
+USER root
+RUN sed -i '/^frappe ALL=(ALL) NOPASSWD: ALL$/d' /etc/sudoers && gpasswd -d frappe sudo
+USER frappe
+
 EXPOSE 8000 9000
 CMD ["bash", "/home/frappe/frappe-bench/docker/image_start.sh"]
