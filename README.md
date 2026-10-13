@@ -19,23 +19,7 @@ docker compose --profile local up
 - **`--profile local` is required.** The MariaDB and Redis containers only start with that flag. Without it, the Frappe container keeps printing `Waiting for local MariaDB...` forever.
 - The first start creates a fresh site and installs telephony, helpdesk and crm. It then builds the frontend, which takes several minutes.
 
-#### Demo data (local mode, run once per fresh site)
-
-The first start does **not** install our `insurance` app or add any demo data. With the stack running, run these in a second terminal:
-
-```bash
-docker compose exec frappe bench --site crm-desk.localhost install-app insurance
-docker compose exec frappe bench --site crm-desk.localhost execute frappe.client.set_value --kwargs '{"doctype": "Insurance Settings", "name": "Insurance Settings", "fieldname": {"policyholder_health_id_format": "PI.######", "member_health_id_format": "HI.######"}}'
-docker compose exec frappe bench --site crm-desk.localhost execute insurance.seed.run --kwargs '{"customers": 40}'
-docker compose restart frappe
-```
-
-1. Installs the insurance app: creates the Insurance Customer, Policy, Claim and other tables.
-2. Sets the health ID formats. Without them, policies get no health IDs. You can also change them in Desk → Insurance → Insurance Settings.
-3. Adds 40 fake customers, with policies, premiums, claims and hospitals, plus one demo ticket and deal. It refuses to run against the cloud DB.
-4. Restarts the container so the worker and scheduler see the new app.
-
-To start over: `docker compose exec frappe bench --site crm-desk.localhost execute insurance.seed.reset`, then run the seed again. See `demo.md` for what the data looks like.
+- The first start does **not** add demo data. See [Seeding demo data](#seeding-demo-data) below.
 
 ### Option B: cloud mode (the shared cloud database and Redis)
 
@@ -74,6 +58,24 @@ Go to http://localhost:8000 and log in as `Administrator`:
 | `/helpdesk` | Helpdesk |
 | `/crm` | CRM |
 | `/app` | Frappe Desk (admin UI) |
+
+## Seeding demo data
+
+Local mode only, once per fresh site. The first start does **not** install our `insurance` app or add any demo data. With the stack running, run these in a second terminal:
+
+```bash
+docker compose exec frappe bench --site crm-desk.localhost install-app insurance
+docker compose exec frappe bench --site crm-desk.localhost execute frappe.client.set_value --kwargs '{"doctype": "Insurance Settings", "name": "Insurance Settings", "fieldname": {"policyholder_health_id_format": "PI.######", "member_health_id_format": "HI.######"}}'
+docker compose exec frappe bench --site crm-desk.localhost execute insurance.seed.run --kwargs '{"customers": 40}'
+docker compose restart frappe
+```
+
+1. Installs the insurance app: creates the Insurance Customer, Policy, Claim and other tables.
+2. Sets the health ID formats. Without them, policies get no health IDs. You can also change them in Desk → Insurance → Insurance Settings.
+3. Adds 40 fake customers, with policies, premiums, claims and hospitals, plus one demo ticket and deal. It refuses to run against the cloud DB.
+4. Restarts the container so the worker and scheduler see the new app.
+
+To start over: `docker compose exec frappe bench --site crm-desk.localhost execute insurance.seed.reset`, then run the seed again. See `demo.md` for what the data looks like.
 
 ## Everyday commands
 
