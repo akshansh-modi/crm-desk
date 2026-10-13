@@ -67,22 +67,18 @@ Local mode only, once per fresh site. The first start does **not** install our `
 docker compose exec frappe bench --site crm-desk.localhost install-app insurance
 docker compose exec frappe bench --site crm-desk.localhost execute frappe.client.set_value --kwargs '{"doctype": "Insurance Settings", "name": "Insurance Settings", "fieldname": {"policyholder_health_id_format": "PI.######", "member_health_id_format": "HI.######"}}'
 docker compose exec frappe bench --site crm-desk.localhost execute insurance.seed.run --kwargs '{"customers": 40}'
+docker compose exec frappe bench build --app helpdesk
+docker compose exec frappe bench build --app crm
 docker compose restart frappe
 ```
 
 1. Installs the insurance app: creates the Insurance Customer, Policy, Claim and other tables.
 2. Sets the health ID formats. Without them, policies get no health IDs. You can also change them in Desk → Insurance → Insurance Settings.
 3. Adds 40 fake customers, with policies, premiums, claims and hospitals, plus one demo ticket and deal. It refuses to run against the cloud DB.
-4. Restarts the container so the worker and scheduler see the new app.
+4. Rebuilds the Helpdesk and CRM screens (Customer 360 panel and our other changes). Needed if the site was first started on an older branch, since the frontend is only built on the very first start. Harmless otherwise.
+5. Restarts the container so the worker and scheduler see the new app. Then hard-refresh the browser (Cmd+Shift+R).
 
 To start over: `docker compose exec frappe bench --site crm-desk.localhost execute insurance.seed.reset`, then run the seed again. See `demo.md` for what the data looks like.
-
-**Site first started on an older branch** (for example `main`, then `docker compose down`, then this branch): the frontend is only built on the very first start, so you still have the old Helpdesk and CRM screens, without the Customer 360 panel. After the commands above, rebuild both, then hard-refresh the browser (Cmd+Shift+R):
-
-```bash
-docker compose exec frappe bench build --app helpdesk
-docker compose exec frappe bench build --app crm
-```
 
 ## Everyday commands
 
