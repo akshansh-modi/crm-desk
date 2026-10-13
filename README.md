@@ -77,6 +77,13 @@ docker compose restart frappe
 
 To start over: `docker compose exec frappe bench --site crm-desk.localhost execute insurance.seed.reset`, then run the seed again. See `demo.md` for what the data looks like.
 
+**Site first started on an older branch** (for example `main`, then `docker compose down`, then this branch): the frontend is only built on the very first start, so you still have the old Helpdesk and CRM screens, without the Customer 360 panel. After the commands above, rebuild both, then hard-refresh the browser (Cmd+Shift+R):
+
+```bash
+docker compose exec frappe bench build --app helpdesk
+docker compose exec frappe bench build --app crm
+```
+
 ## Everyday commands
 
 ```bash
