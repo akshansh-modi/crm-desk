@@ -31,7 +31,7 @@ merge(
 		"redis_socketio": env["REDIS_URL"],
 		"default_site": env["SITE_NAME"],
 		"serve_default_site": True,
-		"developer_mode": 1,
+		"developer_mode": int(env.get("DEVELOPER_MODE", 1)),  # the prod image sets 0
 		"server_script_enabled": 1,  # off by default in Frappe; needed for Server Scripts
 		"webserver_port": 8000,
 		"socketio_port": 9000,
