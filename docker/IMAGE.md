@@ -34,19 +34,21 @@ minutes; follow it with `docker logs -f crm-desk`. Then open `http://<SITE_NAME>
 | `INSTALL_APPS` | Optional. Default `telephony helpdesk crm insurance` |
 | `GUNICORN_WORKERS` | Optional. Default `2` |
 
-## Ports, nginx and health check
+## Ports, ingress and health check
 
-- `8000`: the app. `9000`: realtime (socket.io).
-- In the DevOps nginx in front, send everything to port `8000`, **except the path `/socket.io`, which
-  goes to port `9000`** (with the WebSocket upgrade headers). Pass the `Host` header through unchanged;
-  it must equal `SITE_NAME`.
+- `8000`: the app. `9000`: realtime (socket.io). Health check: `GET /api/method/ping` on 8000 returns `{"message":"pong"}`.
+- The ingress (nginx) in front needs:
+  - **Routing:** everything to port `8000`, **except the path `/socket.io`, which goes to port `9000`**, with WebSocket upgrade allowed.
+  - **Host header passed through unchanged.** It must equal `SITE_NAME`.
+  - **`X-Forwarded-Proto: https`** when the ingress handles HTTPS. Frappe uses it to put the `Secure` flag on the login cookie and to build `https://` links. The image trusts this header from any address (`FORWARDED_ALLOW_IPS=*`), so the container must only be reachable through the ingress. Set `FORWARDED_ALLOW_IPS` to the ingress's address range to narrow it.
+  - **Upload size:** raise the request body limit (ingress-nginx defaults to 1 MB), e.g. 50 MB, or file uploads fail.
+  - **Timeouts:** at least 120 s for reads, the same as gunicorn's, so slow reports aren't cut off.
 - **The container must be able to reach the site's public address** (`https://<SITE_NAME>`, through
-  that nginx). When a browser opens a realtime connection, the realtime server checks the login by
+  the ingress). When a browser opens a realtime connection, the realtime server checks the login by
   calling back the address the page was opened on. If the container can't resolve or reach it,
   realtime is refused with `Unauthorized: fetch failed`. The rest of the app still works.
-- Without the `/socket.io` rule, live updates in Desk (`/app`) don't connect. Helpdesk and CRM still work when
-  opened directly on `:8000`, because they go to `:9000` themselves.
-- Health check: `GET /api/method/ping` returns `{"message":"pong"}`.
+- Without the `/socket.io` rule, live updates in Desk (`/app`) don't connect. Helpdesk and CRM still
+  work when opened directly on `:8000`, because they go to `:9000` themselves.
 
 ## Keep in mind
 

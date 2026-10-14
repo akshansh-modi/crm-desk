@@ -44,6 +44,11 @@ RUN { echo 'web: cd sites && ../env/bin/gunicorn --pythonpath ../docker --bind 0
       echo 'worker: bench worker'; \
       echo 'schedule: bench schedule'; } > Procfile
 
+# Trust X-Forwarded-Proto from the ingress, which handles HTTPS: without it gunicorn treats every
+# request as plain http and Frappe leaves the Secure flag off the login cookie. Only the ingress can
+# reach the container, so "*" is fine; DevOps can narrow it to the ingress's address range.
+ENV FORWARDED_ALLOW_IPS=*
+
 # The base image lets the frappe user run anything as root without a password (sudoers +
 # sudo group). Nothing here needs it, so take it away: the app user stays an ordinary user.
 USER root
