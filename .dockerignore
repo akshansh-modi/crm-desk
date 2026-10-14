@@ -6,3 +6,11 @@ sites
 **/node_modules
 **/__pycache__
 **/.DS_Store
+**/.vscode
+**/.idea
+**/.pi
+**/public/dist
+**/public/desk
+**/public/frontend
+apps/crm/crm/www/crm.html
+apps/helpdesk/helpdesk/www/helpdesk/index.html

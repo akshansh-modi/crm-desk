@@ -1,65 +1,80 @@
-# Docker image (single container, for the InfoSec review)
+# Docker image (single container, for SIT and the InfoSec review)
 
-Developers use `docker-compose.yml`. This is the other way to run the app: the root `Dockerfile`
-builds **one image**, and **one container** runs the whole app (web, realtime, background jobs,
-scheduler). MariaDB and Redis are **not** in the image: point it at existing ones with env vars.
+Developers use `docker-compose.yml`. This is the deployment path: the root `Dockerfile` builds
+**one image**, and **one pod** runs the whole app (web, realtime, background jobs, scheduler).
+MariaDB and Redis are **not** in the image: point it at existing ones with env vars.
+Target: AWS EKS behind the existing ingress. Splitting into separate pods comes after the InfoSec review.
 
-Not a production setup yet (one container, no scaling). That comes after the InfoSec review.
-
-## Build and run
+## Build (Jenkins)
 
 ```bash
-docker build -t crm-desk .
-docker run -d --name crm-desk --restart unless-stopped -p 8000:8000 -p 9000:9000 --env-file crm-desk.env crm-desk
+docker build -t <ecr-repo>/crm-desk:<git-commit> .
+docker push <ecr-repo>/crm-desk:<git-commit>
 ```
 
-`--restart unless-stopped`: if one process inside dies, the whole container stops, and this brings
-it back. The first build takes a long time (about 30 minutes on a laptop, mostly Python packages);
-later builds reuse that step unless something under `apps/` changed.
+- **BuildKit is required** (Docker's default builder since version 23): the Dockerfile uses build cache mounts.
+- **Build for the nodes' CPU type.** Graviton nodes are `linux/arm64`, the others `linux/amd64`. Pass `--platform` to match, or pin the pod with `nodeSelector: kubernetes.io/arch: amd64`.
+- **Build time:** the Python packages step only reruns when a `pyproject.toml` changes; a code-only change rebuilds in a few minutes (mostly the frontend). On a fresh build machine, the first build takes about 25 minutes. Agents that start empty every time lose the cache; use `--cache-from`/`--cache-to type=registry` on ECR there.
+- **Network during the build:** PyPI, the npm registry and GitHub (a few packages are installed from GitHub).
+- Tag images with the git commit, never only `latest`, so you always know what runs and can roll back.
 
-The first start on an empty database creates the site and installs the apps. That takes a few
-minutes; follow it with `docker logs -f crm-desk`. Then open `http://<SITE_NAME>:8000` and log in as
-`Administrator` with `ADMIN_PASSWORD`.
+## Kubernetes settings
 
-## Env file (`crm-desk.env`)
+- **`replicas: 1` and `strategy: Recreate`, always.** The default RollingUpdate briefly runs two pods: two schedulers (duplicate emails and tickets), two first-start installs racing on an empty database, and an EBS volume that can't attach to the second pod.
+- **Probes.** The first start (creating the site, installing apps, migrating) takes several minutes before anything listens:
+  - `startupProbe`: TCP 8000, allowing up to 30 minutes (e.g. `periodSeconds: 10`, `failureThreshold: 180`). A probe that kills the pod mid-install leaves a half-built database that has to be emptied by hand.
+  - `livenessProbe`: TCP 8000. Not the HTTP ping: it needs the database, so a database blip would restart the pod.
+  - `readinessProbe`: HTTP `GET /api/method/ping` on 8000, which returns `{"message":"pong"}`.
+- **Security context:** `runAsNonRoot: true` works (the image runs as uid 1000). Set `allowPrivilegeEscalation: false` and `fsGroup: 1000`. `readOnlyRootFilesystem` is **not** supported: the start script writes config into `sites/`.
+- **Shutdown:** on a deploy, the process manager gives running requests and background jobs 5 seconds, then stops them. Fine for SIT.
+- **Network:** only the ingress should reach ports 8000 and 9000 (a NetworkPolicy, if the cluster enforces them). The image trusts `X-Forwarded-*` headers from any address that reaches it.
+- **Logs:** gunicorn's access log and process output go to stdout (CloudWatch). Frappe's own logs are files inside the container (`sites/<SITE_NAME>/logs/`, `logs/`), lost when the pod is replaced, unless they're on the uploads volume.
+
+## Ingress
+
+- **Host rule:** match only `SITE_NAME`. No catch-all rule pointing at this service.
+- **Routing:** everything to port `8000`, **except the path `/socket.io`, which goes to port `9000`**, with WebSocket upgrade allowed.
+- **Headers to the pod:** keep the `Host` header (it must equal `SITE_NAME`) and send `X-Forwarded-Proto: https` (Frappe then puts `Secure` on the login cookie). `X-Forwarded-For` must be overwritten, not appended, or clients can fake their IP and dodge the login lockout: on an ALB set `routing.http.xff_header_processing.mode=replace`; on ingress-nginx keep `use-forwarded-headers` off (the default), so it sets the header itself.
+- **Upload size:** about 50 MB (ingress-nginx defaults to 1 MB). **Timeouts:** 120 s (on an ALB, the idle timeout).
+- **Security headers:** nothing in the image adds them, so add them here: `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`.
+- **ALB health check** for the 9000 target: path `/socket.io/?EIO=4&transport=polling`.
+
+## Env vars (a Kubernetes Secret)
 
 | Variable | Value |
 |---|---|
-| `SITE_NAME` | **The host name people open in the browser**, e.g. `crm-desk.internal.example.com`. Realtime updates only work when it matches. |
-| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | MariaDB (tested with 11.8). The database and user must already exist, and the database should be empty on the first start. |
-| `DB_SSL_CA` | CA file for SSL to the DB, e.g. `/etc/ssl/certs/ca-certificates.crt`. Empty means no SSL. |
-| `REDIS_URL` | `redis://default:<password>@<host>:<port>` |
-| `ENCRYPTION_KEY` | Generate once and keep it: `python3 -c "import base64,os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"` |
-| `ADMIN_PASSWORD` | Administrator password, set on the first start |
+| `SITE_NAME` | **The host name people open in the browser**, e.g. `crm-desk-sit.example.com` |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | MariaDB, e.g. RDS (tested with MariaDB 11.8). The database and user must exist; the database must be empty on the first start. |
+| `DB_SSL_CA` | Path of the CA file for SSL to the database. For RDS: Amazon's `global-bundle.pem` (not in the image), mounted from a ConfigMap, e.g. `/etc/rds/global-bundle.pem`. The certificate's host name is checked. Empty means no SSL. |
+| `REDIS_URL` | `redis://default:<password>@<host>:<port>`, or `rediss://…` for ElastiCache with encryption in transit. Use a non-serverless, cluster-mode-disabled ElastiCache. |
+| `ENCRYPTION_KEY` | Generate once and never change it: `python3 -c "import base64,os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"` |
+| `ADMIN_PASSWORD` | Administrator password. Only used on the first start |
+| `AUTO_MIGRATE` | `1` runs `migrate` on every start, so new doctypes and fields in a new image get their tables. Set it on SIT (its own database). Default `0`. |
+| `HOST_NAME` | Optional. Base URL for links in emails. Default `https://<SITE_NAME>` |
 | `INSTALL_APPS` | Optional. Default `telephony helpdesk crm insurance` |
 | `GUNICORN_WORKERS` | Optional. Default `2` |
 
-## Ports, ingress and health check
+## Storage
 
-- `8000`: the app. `9000`: realtime (socket.io). Health check: `GET /api/method/ping` on 8000 returns `{"message":"pong"}`.
-- The ingress (nginx) in front needs:
-  - **Routing:** everything to port `8000`, **except the path `/socket.io`, which goes to port `9000`**, with WebSocket upgrade allowed.
-  - **Host header passed through unchanged.** It must equal `SITE_NAME`.
-  - **`X-Forwarded-Proto: https`** when the ingress handles HTTPS. Frappe uses it to put the `Secure` flag on the login cookie and to build `https://` links. The image trusts this header from any address (`FORWARDED_ALLOW_IPS=*`), so the container must only be reachable through the ingress. Set `FORWARDED_ALLOW_IPS` to the ingress's address range to narrow it.
-  - **Upload size:** raise the request body limit (ingress-nginx defaults to 1 MB), e.g. 50 MB, or file uploads fail.
-  - **Timeouts:** at least 120 s for reads, the same as gunicorn's, so slow reports aren't cut off.
-- **The container must be able to reach the site's public address** (`https://<SITE_NAME>`, through
-  the ingress). When a browser opens a realtime connection, the realtime server checks the login by
-  calling back the address the page was opened on. If the container can't resolve or reach it,
-  realtime is refused with `Unauthorized: fetch failed`. The rest of the app still works.
-- Without the `/socket.io` rule, live updates in Desk (`/app`) don't connect. Helpdesk and CRM still
-  work when opened directly on `:8000`, because they go to `:9000` themselves.
+Uploaded files (ticket attachments, policy documents) are written to
+`/home/frappe/frappe-bench/sites/<SITE_NAME>/`. Every deploy replaces the pod, so without a volume
+they're lost on each deploy. If they should survive: one EBS volume (ReadWriteOnce) mounted at exactly
+that path. With one pod it doesn't need to be shared. EBS lives in one availability zone, so the pod
+stays in that zone. Never mount over `sites/`: that hides the built frontend.
+
+## What happens on each deploy
+
+1. The new pod starts and writes its config from the env vars.
+2. Empty database: it creates the site. Existing site: it skips that.
+3. `AUTO_MIGRATE=1`: `migrate` updates the tables for the new code.
+4. Apps in `INSTALL_APPS` that aren't installed yet get installed.
+5. Web, realtime, worker and scheduler start; the readiness probe turns green.
 
 ## Keep in mind
 
-- **Use a database of its own.** Don't point this at the team's shared dev database (the one in
-  `.env.cloud.example`): the first start installs apps there, and the built-in scheduler would run
-  jobs twice next to a dev's.
-- Uploaded files live inside the container at `/home/frappe/frappe-bench/sites/<SITE_NAME>/`. Mount a
-  volume there if they must survive the container being removed. Not over `sites/`: that would hide
-  the built frontend.
-- After deploying a newer image on an existing database, run
-  `docker exec crm-desk bench --site <SITE_NAME> migrate`.
+- **Use a database of its own.** Never point this at the team's shared dev database (`.env.cloud.example`).
 - No demo data. The seed script only runs in local mode.
-- The app runs as the ordinary user `frappe` (uid 1000) with no sudo rights; the image removes the
-  passwordless sudo the base image comes with.
+- The app runs as uid 1000 with no sudo; Server Scripts and developer mode are off.
+- To try the image on a laptop: run MariaDB and Redis containers on one docker network, then
+  `docker run --network <net> -p 8000:8000 -p 9000:9000 --env-file crm-desk.env <image>`. Desk's live
+  updates need the `/socket.io` routing, so without an ingress only Helpdesk and CRM get them.

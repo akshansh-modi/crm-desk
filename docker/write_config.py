@@ -32,7 +32,7 @@ merge(
 		"default_site": env["SITE_NAME"],
 		"serve_default_site": True,
 		"developer_mode": int(env.get("DEVELOPER_MODE", 1)),  # the prod image sets 0
-		"server_script_enabled": 1,  # off by default in Frappe; needed for Server Scripts
+		"server_script_enabled": int(env.get("SERVER_SCRIPT_ENABLED", 1)),  # Frappe default is off; dev turns it on, the image off
 		"webserver_port": 8000,
 		"socketio_port": 9000,
 	},
@@ -72,6 +72,15 @@ if env["MODE"] == "cloud":
 	conf = json.loads(site_config.read_text())
 	if env.get("DB_SSL_CA"):
 		conf["db_ssl_ca"] = env["DB_SSL_CA"]
+		# Also check the certificate is for DB_HOST. On in the image; off by default so dev is unchanged.
+		conf["db_ssl_check_hostname"] = int(env.get("DB_SSL_CHECK_HOSTNAME", 0))
 	else:
 		conf.pop("db_ssl_ca", None)
+		conf.pop("db_ssl_check_hostname", None)
+	# Public base URL for links Frappe builds outside a request (password-reset and notification
+	# emails from background jobs). Unset = Frappe guesses from the request or the site name.
+	if env.get("HOST_NAME"):
+		conf["host_name"] = env["HOST_NAME"]
+	else:
+		conf.pop("host_name", None)
 	site_config.write_text(json.dumps(conf, indent=1))
