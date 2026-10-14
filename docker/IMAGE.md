@@ -28,6 +28,7 @@ docker push <ecr-repo>/crm-desk:<git-commit>
 - **Security context:** `runAsNonRoot: true` works (the image runs as uid 1000). Set `allowPrivilegeEscalation: false` and `fsGroup: 1000`. `readOnlyRootFilesystem` is **not** supported: the start script writes config into `sites/`.
 - **Shutdown:** on a deploy, the process manager gives running requests and background jobs 5 seconds, then stops them. Fine for SIT.
 - **Network:** only the ingress should reach ports 8000 and 9000 (a NetworkPolicy, if the cluster enforces them). The image trusts `X-Forwarded-*` headers from any address that reaches it.
+- **The pod must be able to reach `https://<SITE_NAME>`** (through the ingress). When a browser opens a realtime connection, the realtime server checks the login by calling back the address the page was opened on. If the pod can't resolve or reach it, realtime is refused with `Unauthorized: fetch failed`; the rest of the app still works.
 - **Logs:** gunicorn's access log and process output go to stdout (CloudWatch). Frappe's own logs are files inside the container (`sites/<SITE_NAME>/logs/`, `logs/`), lost when the pod is replaced, unless they're on the uploads volume.
 
 ## Ingress

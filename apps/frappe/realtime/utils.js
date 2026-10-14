@@ -5,10 +5,12 @@ function get_url(socket, path) {
 	if (!path) {
 		path = "";
 	}
-	// crm-desk patch, see PATCHES.md. Upstream calls back the browser's Origin, so a forged Origin
-	// (plus X-Frappe-Site-Name) made socketio send its secret to, and trust, any server. Always ask
-	// our own web server instead. FRAPPE_WEB_URL: for when web runs in another pod.
-	let url = process.env.FRAPPE_WEB_URL || `http://127.0.0.1:${conf.webserver_port}`;
+	let url = socket.request.headers.origin;
+	if (conf.developer_mode) {
+		let [protocol, host, port] = url.split(":");
+		port = conf.webserver_port;
+		url = `${protocol}:${host}:${port}`;
+	}
 	return url + path;
 }
 
