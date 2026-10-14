@@ -57,10 +57,11 @@ Go to http://localhost:8000 and log in as `Administrator`:
 | `/crm` | CRM |
 | `/app` | Frappe Desk (admin UI) |
 
-## Docker image (InfoSec / DevOps)
+## Docker image (SIT deployment)
 
 Besides compose, the root `Dockerfile` builds a single image that runs the whole app in one container,
-against an external MariaDB and Redis. Build, run and nginx notes: `docker/IMAGE.md`.
+against an external MariaDB and Redis. This is what gets deployed to SIT. Build, Kubernetes and
+ingress notes: `docker/IMAGE.md`.
 
 ## Everyday commands
 

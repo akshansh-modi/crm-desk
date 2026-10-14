@@ -1,9 +1,9 @@
-# Docker image (single container, for SIT and the InfoSec review)
+# Docker image (single container, for SIT)
 
 Developers use `docker-compose.yml`. This is the deployment path: the root `Dockerfile` builds
 **one image**, and **one pod** runs the whole app (web, realtime, background jobs, scheduler).
 MariaDB and Redis are **not** in the image: point it at existing ones with env vars.
-Target: AWS EKS behind the existing ingress. Splitting into separate pods comes after the InfoSec review.
+Target: AWS EKS behind the existing ingress. Splitting into separate pods comes later, for production.
 
 ## Build (Jenkins)
 

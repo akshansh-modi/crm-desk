@@ -1,4 +1,4 @@
-# Single-container image (built for the InfoSec review): web, socketio, worker and scheduler all run
+# Single-container image for deploying to SIT (EKS): web, socketio, worker and scheduler all run
 # in this one container; MariaDB and Redis are external. See docker/IMAGE.md.
 # The dev setup stays docker-compose.yml + docker/entrypoint.sh.
 # Pinned by digest so every build starts from the same base as `frappe/bench:latest` did when this was written.
@@ -36,9 +36,9 @@ RUN --mount=type=cache,target=/home/frappe/.cache/uv,uid=1000,gid=1000 \
 # Bench folder + frontend build. The Helpdesk build reads socketio_port from common_site_config.json,
 # so it must exist first; write_config.py fills in the rest when the container starts.
 # FRAPPE_DOCKER_BUILD=1: skip telling Redis about the new assets (there's no Redis while building;
-# without it the build retries forever). --force: always build here; without it Frappe first tries to
-# download prebuilt assets from the internet, which would also skip our patches to Frappe's JS. This step reruns on every code change, since the frontend
-# has to be rebuilt from the code anyway; the yarn cache mount keeps the package downloads fast.
+# without it the build retries forever). --force: always build here, instead of Frappe first trying
+# to download prebuilt assets from the internet. This step reruns on every code change, since the
+# frontend has to be rebuilt from the code anyway; the yarn cache mount keeps package downloads fast.
 RUN --mount=type=cache,target=/home/frappe/.cache/yarn,uid=1000,gid=1000 \
     mkdir -p sites config/pids logs \
  && { for app in frappe telephony helpdesk crm; do echo "$app"; done; \

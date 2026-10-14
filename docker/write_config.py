@@ -78,9 +78,7 @@ if env["MODE"] == "cloud":
 		conf.pop("db_ssl_ca", None)
 		conf.pop("db_ssl_check_hostname", None)
 	# Public base URL for links Frappe builds outside a request (password-reset and notification
-	# emails from background jobs). Unset = Frappe guesses from the request or the site name.
+	# emails from background jobs). Only set, never removed, like every other merged key.
 	if env.get("HOST_NAME"):
 		conf["host_name"] = env["HOST_NAME"]
-	else:
-		conf.pop("host_name", None)
 	site_config.write_text(json.dumps(conf, indent=1))
