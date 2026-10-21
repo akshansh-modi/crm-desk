@@ -42,6 +42,22 @@ The host, port and DB name are already filled in.
 
 The first start installs telephony, helpdesk and crm on the site if they aren't already installed. Every later start skips that step.
 
+#### Creating a new database (e.g. on AWS RDS)
+
+If `DB_NAME` points at an empty database, the first start builds the site in it. Frappe doesn't create that database itself, so whoever does must set Frappe's character set and collation:
+
+```sql
+CREATE DATABASE <db_name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+MariaDB 11.8 otherwise defaults to `utf8mb4_uca1400_ai_ci`, and the RDS console's "Initial database name" field uses that default. Already created it that way? While it's still empty, fix it with:
+
+```sql
+ALTER DATABASE <db_name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+The DB user also needs full privileges on that database. Use MariaDB 10.6 to 11.8; Frappe warns outside that range.
+
 **Don't do these on the cloud site without telling the team:** `migrate`, `install-app` of a new app, `new-site` or `reinstall`. Everyone shares this database, so these change it for all of you.
 
 Never commit `.env`. It's gitignored, and only the `.example` files belong in git.
