@@ -1,4 +1,5 @@
 {
+  "//": "crm-desk patch, see PATCHES.md (Snyk 1-5): removed @vue/component-compiler; launch-editor, postcss, moment, socket.io, socket.io-client bumped; resolutions block added",
   "name": "frappe-framework",
   "scripts": {
     "build": "node esbuild",
