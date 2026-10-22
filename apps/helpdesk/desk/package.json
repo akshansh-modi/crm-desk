@@ -28,7 +28,7 @@
     "frappe-ui": "1.0.0-beta.24",
     "mime": "^3.0.0",
     "pinia": "^2.0.33",
-    "sanitize-html": "^2.10.0",
+    "sanitize-html": "2.18.0",
     "socket.io-client": "^4.8.4",
     "tailwindcss-rtl": "^0.9.0",
     "vue": "3.5.43",
@@ -53,6 +53,8 @@
     "prosemirror-model": "1.25.4",
     "postcss": "8.5.28",
     "postcss-selector-parser": "6.1.4",
-    "nanoid": "3.3.19"
+    "nanoid": "3.3.19",
+    "dompurify": "3.4.16",
+    "defu": "6.1.7"
   }
 }
