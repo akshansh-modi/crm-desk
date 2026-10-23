@@ -17,8 +17,8 @@
   },
   "dependencies": {
     "@framework/ui": "link:../../frappe/ui",
-    "@tiptap/core": "^3.26.0",
-    "@tiptap/extension-paragraph": "^3.26.0",
+    "@tiptap/core": "^3.32.0",
+    "@tiptap/extension-paragraph": "^3.32.0",
     "@twilio/voice-sdk": "^2.10.2",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitejs/plugin-vue-jsx": "^5.1.6",
@@ -43,8 +43,8 @@
   "resolutions": {
     "dompurify": "3.4.16",
     "picomatch": "4.0.5",
-    "prosemirror-model": "1.25.9",
-    "prosemirror-view": "1.41.9",
+    "prosemirror-model": "1.25.12",
+    "prosemirror-view": "1.42.6",
     "vite": "8.2.4",
     "@vue/compiler-sfc": "3.5.43",
     "@vue/shared": "3.5.43",
@@ -54,7 +54,8 @@
     "browserslist": "4.29.1",
     "fast-uri": "3.1.8",
     "postcss-selector-parser": "6.1.5",
-    "eslint-plugin-vue/postcss-selector-parser": "7.1.6"
+    "eslint-plugin-vue/postcss-selector-parser": "7.1.6",
+    "prosemirror-transform": "1.12.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
