@@ -1,7 +1,13 @@
 # Run in apps/helpdesk/desk
 
-# tiptap: want ONE line, e.g. 43 version "3.30.6"
+# tiptap: want ONE line, e.g. 43 version "3.32.0"
 grep -A1 '^"@tiptap/' yarn.lock | grep version | sort | uniq -c
 
-# prosemirror-model: want ONE line, version "1.25.11"
+# prosemirror-model: want ONE line, version "1.25.12" (tiptap 3.32.0)
 grep -A1 '^prosemirror-model@' yarn.lock | grep version
+
+# prosemirror-view: want ONE line, ideally 1.42.6 (1.42.7 is from 2026-10-22)
+grep -A1 '^prosemirror-view@' yarn.lock | grep version
+
+# prosemirror-transform: want ONE line, ideally 1.12.2 (1.12.3/1.12.4 are from 2026-10-22)
+grep -A1 '^prosemirror-transform@' yarn.lock | grep version
