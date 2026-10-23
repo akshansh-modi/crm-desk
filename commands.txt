@@ -1,0 +1,7 @@
+# Run in apps/helpdesk/desk
+
+# tiptap: want ONE line, e.g. 43 version "3.30.6"
+grep -A1 '^"@tiptap/' yarn.lock | grep version | sort | uniq -c
+
+# prosemirror-model: want ONE line, version "1.25.11"
+grep -A1 '^prosemirror-model@' yarn.lock | grep version
