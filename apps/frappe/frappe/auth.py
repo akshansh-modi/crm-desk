@@ -430,6 +430,9 @@ class CookieManager:
 		self.to_delete.extend(to_delete)
 
 	def flush_cookies(self, response: Response):
+		# crm-desk patch, see PATCHES.md: `cookie_domain` in site_config (e.g. ".example.com")
+		# shares the session between subdomains such as app. and api.
+		domain = frappe.conf.get("cookie_domain") or None
 		for key, opts in self.cookies.items():
 			response.set_cookie(
 				key,
@@ -439,12 +442,16 @@ class CookieManager:
 				httponly=opts.get("httponly"),
 				samesite=opts.get("samesite"),
 				max_age=opts.get("max_age"),
+				domain=domain,
 			)
 
 		# expires yesterday!
 		expires = datetime.datetime.now() + datetime.timedelta(days=-1)
 		for key in set(self.to_delete):
-			response.set_cookie(key, "", expires=expires)
+			response.set_cookie(key, "", expires=expires, domain=domain)
+			if domain:
+				# also clear a host-only cookie left from before cookie_domain was set
+				response.set_cookie(key, "", expires=expires)
 
 
 @frappe.whitelist()
